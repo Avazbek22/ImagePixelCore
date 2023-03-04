@@ -1,12 +1,13 @@
 using System.Diagnostics;
 using System.Drawing;
+using System.Windows.Forms;
 
 namespace ImagePixelCore
 {
 
     public partial class Form1 : Form
     {
-        private List<Bitmap> _bitmaps = new List<Bitmap>();
+        private List<Bitmap> _bitmaps = new List<Bitmap>(100);
         private Random rnd = new Random(DateTime.Now.Millisecond);
         public Form1()
         {
@@ -20,6 +21,7 @@ namespace ImagePixelCore
             trackBar1.Value = 0;
             trackBar1.Enabled = false;
             Text = "0 %";
+            GC.Collect();
         }
 
         private async void openToolStripMenuItem_Click(object sender, EventArgs e)
@@ -30,54 +32,51 @@ namespace ImagePixelCore
                 sw.Start();
                 menuStrip1.Enabled = false;
                 UpdateForm();
-                await Task.Run(() => { RunProcessing(new Bitmap(openFileDialog1.FileName)); });
+                int steps = trackBar1.Maximum;
+                await Task.Run(() => { RunProcessing(new Bitmap(openFileDialog1.FileName), steps); });
                 (menuStrip1.Enabled, trackBar1.Enabled) = (true, true);
                 sw.Stop();
-                Text = $"Прошедшее время: {sw.Elapsed.ToString().Remove(8)}";
+                Text = $"Прошедшее время: {sw.Elapsed.ToString().Remove(10)}";
             }
         }
 
-        private void RunProcessing(Bitmap bitmap)
+        private void RunProcessing(Bitmap bitmap, int steps)
         {
-            List<Pixel> pixels = GetPixels(bitmap);
+            
+            int cnt = bitmap.Height * bitmap.Width, pixelsInStep = cnt / steps;
 
-            int pixelsInStep = (bitmap.Height * bitmap.Width) / 100;
+            int[] indexes = Enumerable.Range(0, cnt).ToArray();
 
-            List<Pixel> currentPixelsSet = new List<Pixel>(pixels.Count - pixelsInStep);
-            Bitmap currentBitmap;
-
-            for (int i = 1, index; i < trackBar1.Maximum; i++)
-            {
-                for (int j = 0; j < pixelsInStep; j++)
+            Bitmap currentBitmap = new Bitmap(bitmap.Width, bitmap.Height);
+            
+            Parallel.Invoke(
+                () =>
                 {
-                    index = rnd.Next(pixels.Count);
-                    currentPixelsSet.Add(pixels[index]);
-                    pixels.RemoveAt(index);
-                }
-                currentBitmap = new Bitmap(bitmap.Width, bitmap.Height);
+                    for (int i = 0, idx; i < cnt - 1; i++)
+                    {
+                        idx = rnd.Next(i + 1, cnt - 1);
+                        (indexes[idx], indexes[i]) = (indexes[i], indexes[idx]);
+                    }
+                },
+                () =>
+                {
+                    for (int i = 1, coor, j, bw = bitmap.Width; i < steps; i++)
+                    {
+                        for (j = 0, coor = indexes[i * pixelsInStep + j]; j < pixelsInStep; j++) {
+                            coor = indexes[i * pixelsInStep + j];
+                            currentBitmap.SetPixel(coor % bw, coor / bw, bitmap.GetPixel(coor % bw, coor / bw));
+                        }
 
-                foreach (Pixel pixel in currentPixelsSet)
-                    currentBitmap.SetPixel(pixel.Point.X, pixel.Point.Y, pixel.Color);
+                        _bitmaps.Add((Bitmap)currentBitmap.Clone());
 
-                _bitmaps.Add(currentBitmap);
+                        this.Invoke(new Action(() => { Text = $"{i} %"; }));
+                        this.Invoke(new Action(() => { pictureBox1.Image = _bitmaps[trackBar1.Value++]; }));
 
-                this.Invoke(new Action(() => { Text = $"{i} %"; }));
-                this.Invoke(new Action(() => { pictureBox1.Image = _bitmaps[trackBar1.Value++]; }));
+                    }
 
-            }
-            _bitmaps.Add(bitmap);
-            this.Invoke(new Action(() => { pictureBox1.Image = _bitmaps[trackBar1.Value++]; }));
-        }
-
-        private List<Pixel> GetPixels(Bitmap bitmap)
-        {
-            List<Pixel> pixels = new List<Pixel>(bitmap.Width * bitmap.Height);
-
-            for (int y = 0; y < bitmap.Height; y++)
-                for (int x = 0; x < bitmap.Width; x++)
-                    pixels.Add(new Pixel(new Point(x, y), bitmap.GetPixel(x, y)));
-
-            return pixels;
+                    _bitmaps.Add(bitmap);
+                    this.Invoke(new Action(() => { pictureBox1.Image = _bitmaps[trackBar1.Value++]; }));
+                });
         }
 
         private void trackBar1_Scroll(object sender, EventArgs e) =>

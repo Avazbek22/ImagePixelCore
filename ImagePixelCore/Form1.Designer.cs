@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             splitContainer1 = new SplitContainer();
             pictureBox1 = new PictureBox();
             trackBar1 = new TrackBar();
@@ -107,14 +108,14 @@
             // openToolStripMenuItem
             // 
             openToolStripMenuItem.Name = "openToolStripMenuItem";
-            openToolStripMenuItem.Size = new Size(224, 26);
+            openToolStripMenuItem.Size = new Size(182, 26);
             openToolStripMenuItem.Text = "Open";
             openToolStripMenuItem.Click += openToolStripMenuItem_Click;
             // 
             // deleteImageToolStripMenuItem
             // 
             deleteImageToolStripMenuItem.Name = "deleteImageToolStripMenuItem";
-            deleteImageToolStripMenuItem.Size = new Size(224, 26);
+            deleteImageToolStripMenuItem.Size = new Size(182, 26);
             deleteImageToolStripMenuItem.Text = "Delete image";
             deleteImageToolStripMenuItem.Click += deleteImageToolStripMenuItem_Click;
             // 
@@ -129,6 +130,7 @@
             ClientSize = new Size(800, 450);
             Controls.Add(splitContainer1);
             Controls.Add(menuStrip1);
+            Icon = (Icon)resources.GetObject("$this.Icon");
             MainMenuStrip = menuStrip1;
             Name = "Form1";
             Text = "0 %";
