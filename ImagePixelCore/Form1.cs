@@ -12,7 +12,8 @@ namespace ImagePixelCore
     {
         private List<Bitmap> _bitmaps = new List<Bitmap>(100);
         private Random rnd = new Random(DateTime.Now.Millisecond);
-        private Bitmap? image = null;
+        private Bitmap? currentImage = null;
+        private readonly Bitmap? originalImage = null;
         private string imagePath;
         public Form1()
         {
@@ -35,8 +36,8 @@ namespace ImagePixelCore
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
                 imagePath = openFileDialog1.FileName;
-                image = new Bitmap(imagePath);
-                await Task.Run(() => { pictureBox1.Image = image; });
+                currentImage = new Bitmap(imagePath);
+                await Task.Run(() => { pictureBox1.Image = currentImage; });
             }
         }
 
@@ -61,7 +62,7 @@ namespace ImagePixelCore
             sw.Start();
             menuStrip1.Enabled = false;
             UpdateForm();
-            await Task.Run(() => { DeletePixels(image, trackBar1.Maximum); });
+            await Task.Run(() => { DeletePixels(currentImage!, trackBar1.Maximum); });
             (menuStrip1.Enabled, trackBar1.Enabled) = (true, true);
             sw.Stop();
             Text = $"Прошедшее время: {sw.Elapsed.ToString().Remove(10)}";
@@ -111,8 +112,8 @@ namespace ImagePixelCore
         private async void blurToolStripMenuItem_Click(object sender, EventArgs e)
         {
             splitContainer1.Panel2Collapsed = true;
-            image = (Bitmap)new GaussianBlur(2000, 2000).Apply(image);
-            pictureBox1.Image = image;
+            currentImage = (Bitmap)new GaussianBlur(2000, 2000).Apply(currentImage);
+            pictureBox1.Image = currentImage;
 
             MessageBox.Show("Succesfull");
         }
